@@ -6,18 +6,55 @@ and supply a new one db with new down-to-earth data.
 from peewee import SqliteDatabase
 from faker import Factory
 from colorama import init, Fore, Style
-from models import User, Item, Order, OrderItem, Address
 import sys
 import glob
 import random
+import argparse
 
+# Empty variables ready to use when an import models is required
+User = None
+Address = None
+Item = None
+Order = None
+OrderItem = None
 
+#initializate colorama
 init(autoreset=True)
 
+# Set up same seed to Random and fake
 SEED = 9623954
 fake = Factory.create('it_IT')
 fake.seed(SEED)
 random.seed(SEED)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-u','--users', type=int , help='Set up a number of insertions in User tables')
+parser.add_argument('-a','--addresses', type=int , 
+                    help='Set up a number of insertions in Address tables')
+args = parser.parse_args()
+import pdb; pdb.set_trace()
+print(args._get_args)
+
+if args.users is None:
+    num_u = 3
+    args.users = 0
+if args.users <= 100:
+    num_u = args.users
+if args.users > 100:
+    print(Fore.RED + Style.BRIGHT + 
+          '{} is a big number. Try again with a little one.'.format(args.users))
+    sys.exit()
+
+def parse_args(arg):
+    if arg is None:
+        num_u = 3
+        arg = 0
+    if arg <= 100:
+        num_u = args.users
+    if arg > 100:
+        print(Fore.RED + Style.BRIGHT + 
+          '{} is a big number. Try again with a little one.'.format(arg))
+        sys.exit()
 
 
 TEXT_DISPLAY = Fore.MAGENTA + Style.BRIGHT + """
@@ -49,14 +86,20 @@ WARNING_OVERWRITE = Fore.YELLOW + Style.BRIGHT + """
                 """
 
 
-def get_random_row(table):
-    total_rows = table.select().count()
-    lucky_row = random.choice(range(1, total_rows+1))
-    return table.select().where(table.id == lucky_row).get()
+class CountInsertions:
+    def __init__(self, table):
+        self.total = table.select().count()
+
+    def random_pick(self):
+        pick = random.choice(range(1, self.total+1))
+        return pick
 
 
-def count_rows(table):
-    return table.select().count()
+class InsertionCall:
+    def __init__(self, table):
+        self.obj = CountInsertions(table)
+        self.lucky_num = self.obj.random_pick()
+        self.insert = table.select().where(table.id == self.lucky_num).get()
 
 
 def set_db(database):
@@ -104,10 +147,10 @@ def address_creator(num_addr=1):
                       'Greece', 'Italy', 'Portugal', 'Spain']
     for i in range(0, num_addr):
         country = random.choice(LIST_COUNTRIES)
-        user_id = count_rows(User)
+        user_id = CountInsertions(User)
         Address.create(
             address_id=fake.uuid4(),
-            user_id=random.choice(range(1, user_id)),
+            user_id=user_id.random_pick(),
             country=country,
             city=fake.city(),
             post_code=fake.postcode(),
@@ -118,28 +161,30 @@ def address_creator(num_addr=1):
 
 def order_creator(num_order=1):
     for i in range(0, num_order):
-        user_id = count_rows(User)
+        user_id = CountInsertions(User)
         order_id = fake.uuid4()
-        address = count_rows(Address)
+        address = CountInsertions(Address)
         Order.create(
             order_id=order_id,
-            user_id=random.choice(range(1, user_id)),
+            user_id=user_id.random_pick(),
             total_price=0,
-            delivery_address=random.choice(range(1, address)),
+            delivery_address=address.random_pick(),
             items=[]
         )
 
 
 def order_item_creator(num_order_item=1):
     orders = Order.select()
-    for order in orders:
+    for i in orders:
         for e in range(1, random.choice(range(1, 7))):
-            an_item = get_random_row(Item)
+            an_item = InsertionCall(Item)
             quantity = random.choice(range(1, 5))
-            order.add_item(an_item, quantity)
+            i.add_item(an_item.insert, quantity)
 
 
 def create_db():
+    global User, Item, Order, OrderItem, Address
+    from models import User, Item, Order, OrderItem, Address
     db = SqliteDatabase('database.db', autocommit=True)
     if db.is_closed():
         db.connect()
@@ -154,11 +199,13 @@ def write_db():
     Given the SEED 9623954 the first user email is
     'fatima.caputo@tiscali.it', and its password is '9J0.'
     """
-    user_creator(10)
+    global User, Item, Order, OrderItem, Address
+    from models import User, Item, Order, OrderItem, Address
+    user_creator(num_u)
     address_creator(10)
     item_creator(10)
     order_creator(10)
-    order_item_creator(10)
+    order_item_creator(100)
 
 
 def get_databases():
@@ -198,11 +245,13 @@ def good_bye(word, default='has'):
 
 
 def overwrite_db():
+    global User, Item, Order, OrderItem, Address
+    from models import User, Item, Order, OrderItem, Address
     print(WARNING_OVERWRITE, '\n')
     print('Are you sure to overwrite?')
-    choice = input('If YES press(1) or [ENTER] to exit without change. >'
-                   + Fore.YELLOW + Style.BRIGHT + ' ').strip()
-    if choice == '1':
+    selct = input('If YES press(1) or [ENTER] to exit without change. >'
+                  + Fore.YELLOW + Style.BRIGHT + ' ').strip()
+    if selct == '1':
         db = SqliteDatabase('database.db', autocommit=False)
         if db.is_closed():
             db.connect()
@@ -211,7 +260,7 @@ def overwrite_db():
         create_tables()
         write_db()
         good_bye('overwritten')
-    if choice == '':
+    if selct == '':
         good_bye('deleted', default='hasn\'t')
 
 
