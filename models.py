@@ -170,6 +170,9 @@ class User(BaseModel, UserMixin):
                 user=self,
                 )
 
+    def delete_favorite(self):
+        self.delete_instance()
+
 
 class Address(BaseModel):
     """ The model Address represent a user address.
@@ -372,10 +375,3 @@ class Favorite(BaseModel):
             'item_uuid': str(self.item.uuid),
             'user_uuid': str(self.user.uuid),
         }
-
-    # def add_favorite(self, item, user):
-    #     return Favorite.create(
-    #                 uuid=uuid4(),
-    #                 item=item,
-    #                 user=user,
-    #             )
