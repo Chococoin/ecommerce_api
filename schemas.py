@@ -253,8 +253,8 @@ class FavoriteSchema(BaseSchema):
         json_module = simplejson
 
     id = fields.Str(dump_only=True, attribute='uuid')
+    item_uuid = fields.Str(attribute='item.uuid', validate=NOT_BLANK)
     name = fields.Str(attribute='item.name')
-    description = fields.Str(attribute='item.description')
     price = fields.Float(attribute='item.price')
 
     user = fields.Relationship(
@@ -262,3 +262,4 @@ class FavoriteSchema(BaseSchema):
         type_='user', schema='UserSchema',
         id_field='uuid', required=True,
     )
+
