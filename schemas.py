@@ -223,6 +223,7 @@ class AddressSchema(BaseSchema):
     )
 
 
+<<<<<<< HEAD
 class PictureSchema(BaseSchema):
     class Meta:
         type_ = 'picture'
@@ -260,6 +261,6 @@ class FavoriteSchema(BaseSchema):
     user = fields.Relationship(
         include_resource_linkage=True,
         type_='user', schema='UserSchema',
-        id_field='uuid', required=True,
+        id_field='uuid', required=False,
+        validate=NOT_EMPTY,
     )
-
